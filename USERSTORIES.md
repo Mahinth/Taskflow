@@ -93,7 +93,9 @@ docker run -p 3000:3000 taskflow
 Open browser and run in http://localhost:3000
 
 ### Using Docker Globally:
+
 docker pull mahinth/taskflow:latest
+
 docker run -d -p 3000:3000 --name taskflow mahinth/taskflow:latest
 
 Open browser and run in http://localhost:3000
