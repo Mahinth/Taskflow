@@ -1,11 +1,4 @@
-require('dotenv').config();
-const dns = require('dns');
-// Use Google Public DNS to resolve MongoDB Atlas SRV records
-// (fixes ECONNREFUSED on restrictive networks)
-dns.setServers(['8.8.8.8', '8.8.4.4']);
-
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 
@@ -35,23 +28,7 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Connect to MongoDB Atlas and start server
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-    console.error('❌ MONGODB_URI is not defined in .env file');
-    process.exit(1);
-}
-
-mongoose
-    .connect(MONGODB_URI)
-    .then(() => {
-        console.log('✅ Connected to MongoDB Atlas');
-        app.listen(PORT, () => {
-            console.log(`🚀 Server running on http://localhost:${PORT}`);
-        });
-    })
-    .catch((err) => {
-        console.error('❌ MongoDB connection error:', err.message);
-        process.exit(1);
-    });
+// Start server (no database needed!)
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+});

@@ -1,7 +1,5 @@
 services:
   app:
-    image: mahinth/taskflow
+    image: mahinth/taskflow:latest
     ports:
-      - "3001:3000"
-    env_file:
-      - .env
+      - "3000:3000"
