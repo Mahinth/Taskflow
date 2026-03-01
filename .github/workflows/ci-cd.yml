@@ -1,0 +1,84 @@
+name: CI/CD Pipeline — Build, Test & Docker
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/todo-app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ─────────────────────────────────
+      # Stage 1: Clone / Checkout
+      # ─────────────────────────────────
+      - name: "Stage 1 — Clone Repository"
+        uses: actions/checkout@v4
+
+      - name: "Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      # ─────────────────────────────────
+      # Stage 2: Build / Install Dependencies
+      # ─────────────────────────────────
+      - name: "Stage 2 — Install Dependencies"
+        run: npm ci
+
+      - name: "Stage 2 — Verify Build"
+        run: |
+          echo "✅ Dependencies installed successfully"
+          echo "📦 Checking project structure..."
+          ls -la
+          echo "📂 Checking public directory..."
+          ls -la public/
+
+      # ─────────────────────────────────
+      # Stage 3: Build & Push Docker Image
+      # ─────────────────────────────────
+      - name: "Stage 3 — Login to DockerHub"
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: "Stage 3 — Build Docker Image"
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          docker build -t $DOCKER_IMAGE:latest -t $DOCKER_IMAGE:${{ github.sha }} .
+          echo "✅ Docker image built successfully"
+
+      - name: "Stage 3 — Push Docker Image to DockerHub"
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          docker push $DOCKER_IMAGE:latest
+          docker push $DOCKER_IMAGE:${{ github.sha }}
+          echo "✅ Docker image pushed to DockerHub"
+
+      # ─────────────────────────────────
+      # Stage 4 (Nice to Have): Deploy to EC2
+      # ─────────────────────────────────
+      # Uncomment the following block when EC2 is configured
+      # - name: "Stage 4 — Deploy to EC2"
+      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #   uses: appleboy/ssh-action@v1.0.3
+      #   with:
+      #     host: ${{ secrets.EC2_HOST }}
+      #     username: ${{ secrets.EC2_USER }}
+      #     key: ${{ secrets.EC2_SSH_KEY }}
+      #     script: |
+      #       docker pull ${{ env.DOCKER_IMAGE }}:latest
+      #       docker stop todo-app || true
+      #       docker rm todo-app || true
+      #       docker run -d --name todo-app -p 3000:3000 \
+      #         -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
+      #         ${{ env.DOCKER_IMAGE }}:latest
+      #       echo "✅ Deployed to EC2 successfully"
